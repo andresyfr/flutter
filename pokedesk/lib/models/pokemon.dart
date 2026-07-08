@@ -4,7 +4,7 @@ class Pokemon {
   final String imageUrl;
   final List<String> types;
 
-  Pokemon({
+  const Pokemon({
     required this.id,
     required this.name,
     required this.imageUrl,
@@ -15,11 +15,26 @@ class Pokemon {
     return Pokemon(
       id: json['id'],
       name: json['name'],
-      imageUrl: json['sprites']['other']['official-artwork']['front_default'] ?? 
-                json['sprites']['front_default'] ?? '',
+      imageUrl: json['sprites']['other']['official-artwork']['front_default'] ??
+          json['sprites']['front_default'] ??
+          '',
       types: (json['types'] as List)
-          .map((type) => type['type']['name'] as String)
+          .map((t) => t['type']['name'] as String)
           .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'imageUrl': imageUrl,
+        'types': types,
+      };
+
+  factory Pokemon.fromStorage(Map<String, dynamic> json) => Pokemon(
+        id: json['id'],
+        name: json['name'],
+        imageUrl: json['imageUrl'],
+        types: List<String>.from(json['types']),
+      );
 }

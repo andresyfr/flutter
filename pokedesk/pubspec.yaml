@@ -11,9 +11,10 @@ dependencies:
     sdk: flutter
   http: ^1.1.0
   cached_network_image: ^3.3.0
+  go_router: ^14.0.0
+  flutter_svg: ^2.0.10
+  shared_preferences: ^2.3.0
   # dio: ^5.7.0                      (HTTP — Sesión 7)
-  # go_router: ^14.0.0               (Navegación — Sesión 4)
-  # shared_preferences: ^2.3.0       (Favoritos locales — Sesión 6)
 
 dev_dependencies:
   flutter_test:
@@ -22,3 +23,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - web/icons/pokeball-pokemon-svgrepo-com.svg

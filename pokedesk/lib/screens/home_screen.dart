@@ -4,7 +4,9 @@ import '../services/pokemon_service.dart';
 import '../widgets/pokemon_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final List<Pokemon> initialPokemons;
+
+  const HomeScreen({super.key, this.initialPokemons = const []});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -23,7 +25,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadPokemons();
+    if (widget.initialPokemons.isNotEmpty) {
+      _allPokemons = List.from(widget.initialPokemons);
+      _filtered = _allPokemons;
+      _offset = widget.initialPokemons.length;
+    } else {
+      _loadPokemons();
+    }
     _searchController.addListener(_onSearch);
   }
 
@@ -112,10 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemBuilder: (context, index) {
                   if (index == _filtered.length) {
                     return const Center(
-                        child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(),
-                    ));
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
                   }
                   return PokemonCard(pokemon: _filtered[index]);
                 },

@@ -4,23 +4,47 @@ Aplicación Pokédex construida con Flutter que consume la [PokéAPI](https://po
 
 ## Características
 
-- Lista de Pokémon en formato `ListView` con tarjetas horizontales
-- Búsqueda en vivo por nombre o número de Pokémon
-- Scroll infinito (carga 20 Pokémon por página)
-- Imágenes oficiales con caché (`cached_network_image`)
-- Tipos de Pokémon con colores distintivos
+- Splash screen con pokebola animada (rotación) mientras carga
+- Lista de Pokémon con búsqueda en vivo por nombre o número
+- Scroll infinito (20 Pokémon por página)
+- Detalle de Pokémon con imagen expandida y colores por tipo
+- Favoritos persistentes con `shared_preferences`
+- Navegación con `go_router` y `NavigationBar` inferior
 
-## Árbol de widgets
+## Árbol de widgets principal
 
 ```
-MaterialApp
-└── Scaffold
-    ├── AppBar → Text("PokéFlutter")
-    └── Body → Column
-        ├── TextField (búsqueda en vivo)
-        └── ListView
-            └── PokemonCard(id, nombre, imagen, tipos)
+PokeFlutterApp (StatelessWidget)
+└── MaterialApp.router (GoRouter)
+    ├── SplashScreen          → /
+    ├── AppScaffold           → StatefulShellRoute
+    │   ├── NavigationBar
+    │   │   ├── Tab: Pokédex  → /home
+    │   │   └── Tab: Favoritos → /favorites
+    │   └── body: navigationShell
+    │       ├── HomeScreen
+    │       │   ├── AppBar → Text("PokéFlutter")
+    │       │   └── Body → Column
+    │       │       ├── TextField (búsqueda en vivo)
+    │       │       └── ListView → PokemonCard(...)
+    │       └── FavoritesScreen
+    │           ├── AppBar → Text("Favoritos")
+    │           └── ListView → PokemonCard(...)
+    └── DetailScreen          → /detail  (fuera del shell)
+        ├── SliverAppBar (color por tipo + botón favorito)
+        └── Imagen + tipos del Pokémon
 ```
+
+## Rutas (GoRouter)
+
+| Ruta | Screen | Descripción |
+|------|--------|-------------|
+| `/` | `SplashScreen` | Ruta inicial, redirige a `/home` tras 3s |
+| `/home` | `HomeScreen` | Lista principal con búsqueda |
+| `/favorites` | `FavoritesScreen` | Pokémon guardados localmente |
+| `/detail` | `DetailScreen` | Detalle, recibe `Pokemon` por `extra` |
+
+La ruta `/detail` usa `context.push('/detail', extra: pokemon)` para pasar el objeto directamente sin serializar en la URL.
 
 ## Estructura del proyecto
 
@@ -31,16 +55,24 @@ pokedesk/
 ├── web/
 ├── lib/
 │   ├── models/
-│   │   └── pokemon.dart          # Modelo de datos Pokemon
+│   │   └── pokemon.dart              # fromJson, toJson, fromStorage
 │   ├── services/
-│   │   └── pokemon_service.dart  # Consumo de PokéAPI
+│   │   ├── pokemon_service.dart      # Consumo de PokéAPI (http)
+│   │   └── favorites_service.dart    # Persistencia con shared_preferences
+│   ├── router/
+│   │   └── app_router.dart           # GoRouter + StatefulShellRoute
 │   ├── screens/
-│   │   └── home_screen.dart      # Pantalla principal con búsqueda y lista
+│   │   ├── splash_screen.dart        # Pokebola animada
+│   │   ├── app_scaffold.dart         # Shell con NavigationBar
+│   │   ├── home_screen.dart          # Lista + búsqueda en vivo
+│   │   ├── detail_screen.dart        # Detalle del Pokémon
+│   │   └── favorites_screen.dart     # Lista de favoritos
 │   ├── widgets/
-│   │   └── pokemon_card.dart     # Tarjeta horizontal de Pokémon
-│   └── main.dart                 # Punto de entrada
+│   │   ├── pokemon_card.dart         # Tarjeta horizontal con onTap
+│   │   └── type_chip.dart            # Chip de tipo reutilizable
+│   └── main.dart                     # PokeFlutterApp (StatelessWidget)
 ├── test/
-│   └── widget_test.dart          # Smoke test básico
+│   └── widget_test.dart
 ├── pubspec.yaml
 └── README.md
 ```
@@ -51,11 +83,11 @@ pokedesk/
 dependencies:
   http: ^1.1.0                    # Peticiones HTTP a PokéAPI
   cached_network_image: ^3.3.0    # Caché de imágenes
+  go_router: ^14.0.0              # Navegación declarativa
+  shared_preferences: ^2.3.0      # Favoritos locales
 
 # Próximas sesiones del bootcamp:
-# dio: ^5.7.0                     (HTTP — Sesión 7)
-# go_router: ^14.0.0              (Navegación — Sesión 4)
-# shared_preferences: ^2.3.0      (Favoritos locales — Sesión 6)
+# dio: ^5.7.0                     (HTTP avanzado — Sesión 7)
 ```
 
 ## Instalación
