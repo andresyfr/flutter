@@ -49,7 +49,7 @@ class _DetailScreenState extends State<DetailScreen> {
   Widget build(BuildContext context) {
     final pokemon = widget.pokemon;
     final dominantColor =
-        TypeChip.colorFor(pokemon.types.first).withOpacity(0.8);
+        TypeChip.colorFor(pokemon.types.first).withValues(alpha: 0.8);
 
     return Scaffold(
       body: CustomScrollView(
