@@ -62,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen>
                       width: pokeballSize,
                       height: pokeballSize,
                       child: SvgPicture.asset(
-                        'web/icons/pokeball-pokemon-svgrepo-com.svg',
+                        'assets/icons/pokeball-pokemon-svgrepo-com.svg',
                         width: pokeballSize,
                         height: pokeballSize,
                       ),
