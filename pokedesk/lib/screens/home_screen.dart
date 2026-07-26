@@ -15,16 +15,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PokemonService _service = PokemonService();
   final TextEditingController _searchController = TextEditingController();
+  late final ScrollController _scrollController;
 
   List<Pokemon> _allPokemons = [];
   List<Pokemon> _filtered = [];
   bool _isLoading = false;
   int _offset = 0;
   final int _limit = 20;
+  bool _sortByName = true;
+  Set<String> _selectedTypes = {};
+  late Set<String> _availableTypes;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+    _availableTypes = {};
+    
     if (widget.initialPokemons.isNotEmpty) {
       _allPokemons = List.from(widget.initialPokemons);
       _filtered = _allPokemons;
@@ -33,25 +41,82 @@ class _HomeScreenState extends State<HomeScreen> {
       _loadPokemons();
     }
     _searchController.addListener(_onSearch);
+    _extractAvailableTypes();
+  }
+
+  void _extractAvailableTypes() {
+    _availableTypes.clear();
+    for (var pokemon in _allPokemons) {
+      _availableTypes.addAll(pokemon.types);
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Cargar más cuando está a 200px del final
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoading &&
+        _searchController.text.isEmpty) {
+      _loadPokemons();
+    }
   }
 
   void _onSearch() {
     final query = _searchController.text.toLowerCase();
+    _applyFilters(query);
+  }
+
+  void _toggleTypeFilter(String type) {
     setState(() {
-      _filtered = query.isEmpty
-          ? _allPokemons
-          : _allPokemons
-              .where((p) =>
-                  p.name.toLowerCase().contains(query) ||
-                  p.id.toString().contains(query))
-              .toList();
+      if (_selectedTypes.contains(type)) {
+        _selectedTypes.remove(type);
+      } else {
+        _selectedTypes.add(type);
+      }
+      _applyFilters(_searchController.text.toLowerCase());
     });
+  }
+
+  void _applyFilters(String query) {
+    setState(() {
+      _filtered = _allPokemons.where((pokemon) {
+        // Filtro de búsqueda
+        final matchesSearch = query.isEmpty ||
+            pokemon.name.toLowerCase().contains(query) ||
+            pokemon.id.toString().contains(query);
+
+        // Filtro de tipo
+        final matchesType = _selectedTypes.isEmpty ||
+            pokemon.types.any((type) => _selectedTypes.contains(type));
+
+        return matchesSearch && matchesType;
+      }).toList();
+
+      _applySorting();
+    });
+  }
+
+  void _applySorting() {
+    if (_sortByName) {
+      _filtered.sort((a, b) => a.name.compareTo(b.name));
+    } else {
+      _filtered.sort((a, b) => a.id.compareTo(b.id));
+    }
+  }
+
+  Future<void> _refresh() async {
+    _offset = 0;
+    _allPokemons.clear();
+    _filtered.clear();
+    _selectedTypes.clear();
+    await _loadPokemons();
   }
 
   Future<void> _loadPokemons() async {
@@ -61,7 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final pokemons = await _service.getPokemons(_limit, _offset);
       setState(() {
         _allPokemons.addAll(pokemons);
-        _filtered = _allPokemons;
+        _extractAvailableTypes();
+        _applyFilters(_searchController.text.toLowerCase());
         _offset += _limit;
       });
     } catch (e) {
@@ -81,6 +147,19 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('PokéFlutter'),
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: Icon(_sortByName
+                ? Icons.sort_by_alpha
+                : Icons.numbers),
+            onPressed: () {
+              setState(() {
+                _sortByName = !_sortByName;
+                _applySorting();
+              });
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -105,31 +184,45 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Expanded(
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (scrollInfo) {
-                if (!_isLoading &&
-                    _searchController.text.isEmpty &&
-                    scrollInfo.metrics.pixels ==
-                        scrollInfo.metrics.maxScrollExtent) {
-                  _loadPokemons();
-                }
-                return false;
-              },
-              child: ListView.builder(
-                itemCount: _filtered.length + (_isLoading ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == _filtered.length) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  return PokemonCard(pokemon: _filtered[index]);
-                },
-              ),
-            ),
+            child: _filtered.isEmpty && !_isLoading
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.catching_pokemon_outlined,
+                          size: 80,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No hay Pokémon',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount: _filtered.length + (_isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == _filtered.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                        return PokemonCard(pokemon: _filtered[index]);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

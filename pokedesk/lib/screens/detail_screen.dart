@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/pokemon.dart';
 import '../services/favorites_service.dart';
@@ -29,6 +30,7 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _toggleFavorite() async {
+    await HapticFeedback.lightImpact();
     await _favService.toggle(widget.pokemon);
     setState(() => _isFavorite = !_isFavorite);
     if (mounted) {
@@ -76,14 +78,17 @@ class _DetailScreenState extends State<DetailScreen> {
               background: Container(
                 color: dominantColor,
                 child: Center(
-                  child: CachedNetworkImage(
-                    imageUrl: pokemon.imageUrl,
-                    height: 200,
-                    placeholder: (context, url) =>
-                        const CircularProgressIndicator(color: Colors.white),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.catching_pokemon, size: 100),
-                    fit: BoxFit.contain,
+                  child: Hero(
+                    tag: 'pokemon-${pokemon.id}',
+                    child: CachedNetworkImage(
+                      imageUrl: pokemon.imageUrl,
+                      height: 200,
+                      placeholder: (context, url) =>
+                          const CircularProgressIndicator(color: Colors.white),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.catching_pokemon, size: 100),
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),

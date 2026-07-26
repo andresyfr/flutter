@@ -8,6 +8,9 @@ class FavoritesService {
 
   /// Notifica cambios en tiempo real a cualquier listener
   static final notifier = ValueNotifier<int>(0);
+  
+  /// Notifica el contador de favoritos
+  static final favoriteCount = ValueNotifier<int>(0);
 
   Future<List<Pokemon>> getAll() async {
     final prefs = await SharedPreferences.getInstance();
@@ -34,6 +37,7 @@ class FavoritesService {
 
     await prefs.setStringList(_key, raw);
     notifier.value++; // notifica el cambio
+    favoriteCount.value = raw.length; // actualiza el contador
   }
 
   Future<bool> isFavorite(int pokemonId) async {
@@ -43,5 +47,12 @@ class FavoritesService {
       final decoded = json.decode(e) as Map<String, dynamic>;
       return decoded['id'] == pokemonId;
     });
+  }
+
+  /// Inicializa el contador de favoritos (llamar al inicio de la app)
+  Future<void> initializeFavoriteCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList(_key) ?? [];
+    favoriteCount.value = raw.length;
   }
 }
