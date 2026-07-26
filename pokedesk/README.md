@@ -86,8 +86,6 @@ dependencies:
   go_router: ^14.0.0              # Navegación declarativa
   shared_preferences: ^2.3.0      # Favoritos locales
 
-# Próximas sesiones del bootcamp:
-# dio: ^5.7.0                     (HTTP avanzado — Sesión 7)
 ```
 
 ## Instalación
