@@ -5,6 +5,8 @@ import '../screens/splash_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/favorites_screen.dart';
 import '../screens/detail_screen.dart';
+import '../screens/compare_screen.dart';
+import '../screens/profile_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -52,5 +54,18 @@ final appRouter = GoRouter(
         return DetailScreen(pokemon: pokemon);
       },
     ),
+    GoRoute(
+      path: '/compare',
+      builder: (context, state) {
+        final pokemons = (state.extra as List<Pokemon>?) ?? [];
+        return CompareScreen(pokemons: pokemons);
+      },
+    ),
+    GoRoute(
+      path: '/profile',
+      builder: (context, state){
+        return const ProfileScreen(); 
+      }
+    )
   ],
 );

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/pokemon.dart';
 import '../services/pokemon_service.dart';
 import '../widgets/pokemon_card.dart';
+import '../widgets/type_chip.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<Pokemon> initialPokemons;
@@ -23,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _offset = 0;
   final int _limit = 20;
   bool _sortByName = true;
-  Set<String> _selectedTypes = {};
+  final Set<String> _selectedTypes = {};
   late Set<String> _availableTypes;
 
   @override
@@ -140,6 +142,36 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildTypeFilters() {
+    if (_availableTypes.isEmpty) return const SizedBox.shrink();
+    final types = _availableTypes.toList()..sort();
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        children: types.map((type) {
+          final selected = _selectedTypes.contains(type);
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: FilterChip(
+              label: Text(type),
+              selected: selected,
+              showCheckmark: false,
+              backgroundColor: TypeChip.colorFor(type).withValues(alpha: 0.15),
+              selectedColor: TypeChip.colorFor(type),
+              labelStyle: TextStyle(
+                color: selected ? Colors.white : null,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
+              onSelected: (_) => _toggleTypeFilter(type),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,6 +180,11 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            tooltip: 'Comparar Pokémon',
+            icon: const Icon(Icons.compare_arrows),
+            onPressed: () => context.push('/compare', extra: _allPokemons),
+          ),
           IconButton(
             icon: Icon(_sortByName
                 ? Icons.sort_by_alpha
@@ -183,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          _buildTypeFilters(),
           Expanded(
             child: _filtered.isEmpty && !_isLoading
                 ? Center(
