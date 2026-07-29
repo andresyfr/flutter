@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/pokemon.dart';
@@ -27,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _sortByName = true;
   final Set<String> _selectedTypes = {};
   late Set<String> _availableTypes;
+  Timer? _debounce;
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -55,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -73,6 +77,41 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onSearch() {
     final query = _searchController.text.toLowerCase();
     _applyFilters(query);
+
+    _debounce?.cancel();
+    if (query.trim().isEmpty) {
+      if (_isSearching) setState(() => _isSearching = false);
+      return;
+    }
+    _debounce = Timer(
+      const Duration(milliseconds: 400),
+      () => _remoteSearch(query),
+    );
+  }
+
+  /// Cuando la búsqueda local no basta, consulta la API por nombre y agrega
+  /// los Pokémon encontrados a la lista.
+  Future<void> _remoteSearch(String query) async {
+    setState(() => _isSearching = true);
+    try {
+      final found = await _service.searchByName(query);
+      final existingIds = _allPokemons.map((p) => p.id).toSet();
+      final newOnes =
+          found.where((p) => !existingIds.contains(p.id)).toList();
+
+      if (newOnes.isNotEmpty) {
+        _allPokemons.addAll(newOnes);
+        _extractAvailableTypes();
+      }
+      // Solo re-aplica si el usuario sigue buscando lo mismo.
+      if (mounted && _searchController.text.toLowerCase() == query) {
+        _applyFilters(query);
+      }
+    } catch (_) {
+      // Silencioso: la búsqueda local sigue mostrando lo que haya.
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
   }
 
   void _toggleTypeFilter(String type) {
@@ -127,7 +166,10 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final pokemons = await _service.getPokemons(_limit, _offset);
       setState(() {
-        _allPokemons.addAll(pokemons);
+        final existingIds = _allPokemons.map((p) => p.id).toSet();
+        _allPokemons.addAll(
+          pokemons.where((p) => !existingIds.contains(p.id)),
+        );
         _extractAvailableTypes();
         _applyFilters(_searchController.text.toLowerCase());
         _offset += _limit;
@@ -221,25 +263,39 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           _buildTypeFilters(),
+          if (_isSearching)
+            const LinearProgressIndicator(minHeight: 2),
           Expanded(
             child: _filtered.isEmpty && !_isLoading
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.catching_pokemon_outlined,
-                          size: 80,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No hay Pokémon',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
+                        if (_isSearching) ...[
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Buscando en la Pokédex...',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                            ),
                           ),
-                        ),
+                        ] else ...[
+                          Icon(
+                            Icons.catching_pokemon_outlined,
+                            size: 80,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No hay Pokémon',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   )
